@@ -7,7 +7,6 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
   <script src="firebase-config.js"></script>
   <script src="auth.js" defer></script>
   <script src="data.js" defer></script>
@@ -34,32 +33,18 @@
       display: inline-block;
       vertical-align: top;
     }
-    .card img {
-      width: 64px;
-      height: 64px;
-      object-fit: cover;
-      border-radius: 50%;
-      margin-bottom: 8px;
-    }
     summary {
       cursor: pointer;
       font-weight: bold;
       font-size: 1.2em;
     }
-    input, textarea, select, button {
+    input, textarea, button {
       display: block;
       width: 100%;
       margin: 0.5em 0;
       padding: 0.5em;
       border-radius: 5px;
       border: none;
-    }
-    .tag {
-      background: #3a6dc8;
-      border-radius: 3px;
-      padding: 0 5px;
-      margin: 0 2px;
-      font-size: 0.8em;
     }
     .card-container {
       white-space: nowrap;
@@ -70,33 +55,28 @@
 </head>
 <body>
   <h1>うちの子リスト</h1>
+
   <div id="loginArea">
     <input id="email" type="email" placeholder="メールアドレス" />
     <input id="password" type="password" placeholder="パスワード" />
     <button onclick="login()">ログイン</button>
   </div>
+
   <div id="mainContent" class="hidden">
     <button onclick="logout()">ログアウト</button>
+
     <div id="formArea">
-      <input id="worldInput" placeholder="世界観名" />
       <input id="nameInput" placeholder="キャラクター名" />
       <input id="ageInput" placeholder="年齢" />
       <input id="genderInput" placeholder="性別" />
       <input id="heightInput" placeholder="身長" />
       <input id="weightInput" placeholder="体重" />
-      <input id="tagsInput" placeholder="#タグ スペース区切り" />
       <textarea id="notesInput" placeholder="備考"></textarea>
-      <label>顔画像 <input id="thumbInput" type="file" accept="image/*" multiple /></label>
-      <label>立ち絵画像 <input id="fullbodyInput" type="file" accept="image/*" multiple /></label>
       <button onclick="addCharacter()">キャラを追加</button>
     </div>
-    <input id="searchInput" placeholder="検索 (名前・タグ)" oninput="filterCharacters()" />
-    <select id="sortSelect" onchange="loadCharacters()">
-      <option value="created">作成日時順</option>
-      <option value="updated">更新日時順</option>
-      <option value="name">名前順</option>
-    </select>
-    <div id="charList"></div>
+
+    <input id="searchInput" placeholder="検索" oninput="filterCharacters()" />
+    <div id="charList" class="card-container"></div>
   </div>
 </body>
 </html>
