@@ -1,97 +1,114 @@
 const db = firebase.firestore();
 
 function addCharacter() {
-  if (!isOwner) {
-    alert("あなたには追加権限がありません");
-    return;
-  }
+  if (!isOwner) { alert("権限がありません"); return; }
 
-  const world = document.getElementById("worldInput").value;
-  const name = document.getElementById("nameInput").value;
-  const age = document.getElementById("ageInput").value;
-  const gender = document.getElementById("genderInput").value;
-  const height = document.getElementById("heightInput").value;
-  const weight = document.getElementById("weightInput").value;
-  const tags = document.getElementById("tagsInput").value.trim().split(/\s+/);
-  const notes = document.getElementById("notesInput").value;
+  const world = document.getElementById("worldInput").value.trim();
+  const name  = document.getElementById("nameInput").value.trim();
+  const age   = document.getElementById("ageInput").value.trim();
+  const gender= document.getElementById("genderInput").value.trim();
+  const height= document.getElementById("heightInput").value.trim();
+  const weight= document.getElementById("weightInput").value.trim();
+  const tags  = document.getElementById("tagsInput").value.trim().split(/\s+/);
+  const url   = document.getElementById("urlInput").value.trim();
+  const notes = document.getElementById("notesInput").value.trim();
+  const now = firebase.firestore.Timestamp.now();
 
-  const createdAt = new Date();
-  const updatedAt = new Date();
-
-  db.collection("characters").add({
-    world,
-    name,
-    age,
-    gender,
-    height,
-    weight,
-    tags,
-    notes,
-    createdAt,
-    updatedAt,
-  })
-  .then(() => {
-    loadCharacters();
-  })
-  .catch((error) => {
-    alert("キャラの保存に失敗しました: " + error.message);
-  });
+  db.collection("characters").add({ world, name, age, gender, height, weight, tags, url, notes, created: now, updated: now })
+    .then(() => loadCharacters())
+    .catch(e => alert("キャラの保存に失敗しました: " + e.message));
 }
 
 function loadCharacters() {
   const list = document.getElementById("charList");
   list.innerHTML = "";
+  db.collection("characters").orderBy("created", "desc").get().then(snap => {
+    snap.forEach(doc => {
+      const d = doc.data();
+      const card = document.createElement("div");
+      card.className = "card";
+      const details = document.createElement("details");
+      const summary = document.createElement("summary");
+      summary.textContent = d.name + "（" + d.world + "）";
+      details.appendChild(summary);
 
-  db.collection("characters").orderBy("createdAt", "desc").get()
-    .then((querySnapshot) => {
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
+      const content = document.createElement("div");
+      content.innerHTML = `
+        <p>年齢：${d.age}</p>
+        <p>性別：${d.gender}</p>
+        <p>身長：${d.height}</p>
+        <p>体重：${d.weight}</p>
+        <p>タグ：${(d.tags||[]).map(t=>'#'+t).join(' ')}</p>
+        <p>備考：${d.notes}</p>
+        <p><small>登録：${formatDate(d.created)} | 更新：${formatDate(d.updated)}</small></p>
+      `;
+      if (d.url) {
+        const a = document.createElement("a");
+        a.href = d.url;
+        a.target = "_blank";
+        a.textContent = "🔗 リンク";
+        a.className = "link";
+        content.appendChild(a);
+      }
 
-        const container = document.createElement("div");
-        container.className = "card";
+      if (isOwner) {
+        const btnEdit = document.createElement("button");
+        btnEdit.textContent = "編集";
+        btnEdit.onclick = () => editCharacter(doc.id, d);
+        const btnDel = document.createElement("button");
+        btnDel.textContent = "削除";
+        btnDel.onclick = () => { db.collection("characters").doc(doc.id).delete().then(loadCharacters); };
+        content.appendChild(btnEdit);
+        content.appendChild(btnDel);
+      }
 
-        const summary = document.createElement("summary");
-        summary.textContent = data.name;
-
-        const thumb = document.createElement("div");
-        thumb.textContent = "世界観：" + data.world;
-
-        const content = document.createElement("div");
-        content.innerHTML = `
-          <p>年齢：${data.age}</p>
-          <p>性別：${data.gender}</p>
-          <p>身長：${data.height}</p>
-          <p>体重：${data.weight}</p>
-          <p>タグ：${(data.tags || []).map(tag => `<span class="tag">${tag}</span>`).join("")}</p>
-          <p>備考：${data.notes}</p>
-          <p>作成日時：${data.createdAt?.toDate().toLocaleString() || "不明"}</p>
-          <p>更新日時：${data.updatedAt?.toDate().toLocaleString() || "不明"}</p>
-        `;
-
-        container.appendChild(summary);
-        container.appendChild(thumb);
-        container.appendChild(content);
-
-        // 編集削除はオーナーのみ
-        if (isOwner) {
-          const editBtn = document.createElement("button");
-          editBtn.textContent = "編集";
-          const delBtn = document.createElement("button");
-          delBtn.textContent = "削除";
-          delBtn.onclick = () => {
-            db.collection("characters").doc(doc.id).delete().then(() => {
-              loadCharacters();
-            });
-          };
-          container.appendChild(editBtn);
-          container.appendChild(delBtn);
-        }
-
-        list.appendChild(container);
-      });
+      details.appendChild(content);
+      card.appendChild(details);
+      list.appendChild(card);
     });
+  });
+}
+
+function editCharacter(id, d) {
+  document.getElementById("worldInput").value = d.world;
+  document.getElementById("nameInput").value = d.name;
+  document.getElementById("ageInput").value = d.age;
+  document.getElementById("genderInput").value = d.gender;
+  document.getElementById("heightInput").value = d.height;
+  document.getElementById("weightInput").value = d.weight;
+  document.getElementById("tagsInput").value = (d.tags||[]).join(" ");
+  document.getElementById("urlInput").value = d.url;
+  document.getElementById("notesInput").value = d.notes;
+
+  document.getElementById("formArea").scrollIntoView();
+  const btnUpdate = document.createElement("button");
+  btnUpdate.textContent = "更新";
+  btnUpdate.onclick = () => {
+    const now = firebase.firestore.Timestamp.now();
+    db.collection("characters").doc(id).update({
+      world: document.getElementById("worldInput").value.trim(),
+      name: document.getElementById("nameInput").value.trim(),
+      age: document.getElementById("ageInput").value.trim(),
+      gender: document.getElementById("genderInput").value.trim(),
+      height: document.getElementById("heightInput").value.trim(),
+      weight: document.getElementById("weightInput").value.trim(),
+      tags: document.getElementById("tagsInput").value.trim().split(/\s+/),
+      url: document.getElementById("urlInput").value.trim(),
+      notes: document.getElementById("notesInput").value.trim(),
+      updated: now
+    }).then(() => loadCharacters());
+  };
+  document.getElementById("formArea").appendChild(btnUpdate);
 }
 
 function filterCharacters() {
-  // 検索機能（必要に応じて実装）
+  const kw = document.getElementById("searchInput").value.toLowerCase();
+  document.querySelectorAll(".card").forEach(c => {
+    const t = c.textContent.toLowerCase();
+    c.style.display = t.includes(kw) ? "inline-block" : "none";
+  });
+}
+
+function formatDate(ts) {
+  return ts && ts.toDate ? ts.toDate().toLocaleString() : "";
 }
