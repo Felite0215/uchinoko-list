@@ -1,35 +1,40 @@
-let isOwner = false;
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-
-auth.onAuthStateChanged(user => {
+// --- auth.js ---
+document.addEventListener("DOMContentLoaded", () => {
   const loginArea = document.getElementById("loginArea");
-  const formArea  = document.getElementById("formArea");
-  const mainArea  = document.getElementById("mainContent");
-  if (user) {
-    isOwner = (user.uid === "XlWqWCKnchXAbY73Lc3jrtEVlVk2");
-    loginArea.classList.add("hidden");
-    formArea.style.display = isOwner ? "block" : "none";
-    mainArea.classList.remove("hidden");
-    loadCharacters();
-  } else {
-    isOwner = false;
-    loginArea.classList.add("hidden");
-    formArea.style.display = "none";
-    mainArea.classList.remove("hidden");
-    loadCharacters();
-  }
-});
+  const mainContent = document.getElementById("mainContent");
+  const loginBtn = document.getElementById("loginBtn");
+  const logoutBtn = document.getElementById("logoutBtn");
+  const loginError = document.getElementById("loginError");
 
-function login() {
-  const email = document.getElementById("email").value;
-  const pw = document.getElementById("password").value;
-  auth.signInWithEmailAndPassword(email, pw).catch(e => alert("ログイン失敗：" + e.message));
-}
+  loginBtn.onclick = async () => {
+    loginError.textContent = "";
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value;
+    try {
+      await firebase.auth().signInWithEmailAndPassword(email, password);
+    } catch (e) {
+      loginError.textContent = "ログイン失敗: " + e.message;
+    }
+  };
 
-function logout() {
-  auth.signOut().then(() => {
-    document.getElementById("mainContent").classList.add("hidden");
-    document.getElementById("loginArea").classList.remove("hidden");
+  logoutBtn.onclick = async () => {
+    await firebase.auth().signOut();
+  };
+
+  firebase.auth().onAuthStateChanged(user => {
+    if (user) {
+      loginArea.classList.add("hidden");
+      mainContent.classList.remove("hidden");
+      window.currentUser = user;
+      window.isOwner = user.uid === OWNER_UID;
+      // 画面表示処理を発火（data.jsのloadAllData()を呼ぶ）
+      if (window.loadAllData) window.loadAllData();
+      // 編集可能かどうかによってフォーム表示切替はdata.js側で行う
+    } else {
+      loginArea.classList.remove("hidden");
+      mainContent.classList.add("hidden");
+      window.currentUser = null;
+      window.isOwner = false;
+    }
   });
-}
+});
