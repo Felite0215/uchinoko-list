@@ -11,45 +11,14 @@
   <script src="auth.js" defer></script>
   <script src="data.js" defer></script>
   <style>
-    body {
-      background-color: #16082f;
-      color: white;
-      font-family: sans-serif;
-      margin: 0; padding: 1em;
-    }
-    h1 { text-align: center; }
-    .hidden { display: none; }
-    .card {
-      background: #2a1a40;
-      margin: 8px;
-      padding: 10px;
-      border-radius: 8px;
-      display: inline-block;
-      vertical-align: top;
-      min-width: 200px;
-    }
-    summary {
-      cursor: pointer;
-      font-weight: bold;
-      font-size: 1.1em;
-    }
-    input, textarea, button {
-      display: block;
-      width: 100%;
-      margin: 6px 0;
-      padding: 8px;
-      border-radius: 5px;
-      border: none;
-    }
-    .card-container {
-      white-space: nowrap;
-      overflow-x: auto;
-      padding: 10px;
-    }
-    a.link {
-      color: #87ceeb;
-      text-decoration: underline;
-    }
+    body { background: #16082f; color: white; font-family: sans-serif; margin:0; padding:1em; }
+    h1 { text-align:center; }
+    .hidden { display:none; }
+    .card { background:#2a1a40; margin:8px; padding:10px; border-radius:8px; display:inline-block; vertical-align:top; min-width:200px; }
+    summary { cursor:pointer; font-weight:bold; font-size:1.1em; }
+    input, textarea, button { display:block; width:100%; margin:6px 0; padding:8px; border-radius:5px; border:none; }
+    .card-container { white-space: nowrap; overflow-x:auto; padding:10px; }
+    a.link { color:#87ceeb; text-decoration:underline; }
   </style>
 </head>
 <body>
@@ -67,15 +36,21 @@
       <input id="worldInput" placeholder="世界観名" />
       <input id="nameInput" placeholder="キャラクター名" />
       <input id="ageInput" placeholder="年齢" />
-      <input id="genderInput" placeholder="性別" />
+      <select id="genderInput">
+        <option>男性</option><option>女性</option><option>無性</option><option>両性</option>
+      </select>
       <input id="heightInput" placeholder="身長" />
       <input id="weightInput" placeholder="体重" />
       <input id="tagsInput" placeholder="タグ（スペース区切り）" />
       <input id="urlInput" placeholder="URLリンク（SNSなど）" />
       <textarea id="notesInput" placeholder="備考"></textarea>
       <button onclick="addCharacter()">キャラを追加</button>
+      <select id="sortSelect" onchange="loadCharacters()">
+        <option value="created">登録順（新しい順）</option>
+        <option value="updated">更新順（新しい順）</option>
+        <option value="name">名前順</option>
+      </select>
     </div>
-
     <input id="searchInput" placeholder="検索（名前・タグなど）" oninput="filterCharacters()" />
     <div id="charList" class="card-container"></div>
   </div>
