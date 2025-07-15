@@ -1,33 +1,33 @@
-firebase.auth().onAuthStateChanged((user) => {
-  const loginArea = document.getElementById("loginArea");
-  const mainContent = document.getElementById("mainContent");
-  const formArea = document.getElementById("formArea");
+let isOwner = false;
 
-  if (user && user.uid === "XlWqWCKnchXAbY73Lc3jrtEVlVk2") {
-    // 管理者ログイン
-    loginArea.classList.add("hidden");
-    formArea.style.display = "block";
-    mainContent.classList.remove("hidden");
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+
+auth.onAuthStateChanged((user) => {
+  if (user) {
+    // 自分がログインしている場合
+    isOwner = (user.uid === "XlWqWCKnchXAbY73Lc3jrtEVlVk2");
+    document.getElementById("mainContent").classList.remove("hidden");
+    document.getElementById("loginArea").classList.add("hidden");
     loadCharacters();
   } else {
-    // 閲覧者または未ログイン
-    loginArea.classList.add("hidden");
-    formArea.style.display = "none";
-    mainContent.classList.remove("hidden");
-    loadCharacters();
+    // 未ログインでも閲覧だけ許可
+    isOwner = false;
+    document.getElementById("mainContent").classList.remove("hidden");
+    document.getElementById("loginArea").classList.add("hidden");
+    loadCharacters(); // 表示だけ行う
   }
 });
 
 function login() {
   const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
-  firebase.auth().signInWithEmailAndPassword(email, password)
+  auth.signInWithEmailAndPassword(email, password)
     .catch((error) => {
-      alert("ログインに失敗しました: " + error.message);
+      alert("ログイン失敗：" + error.message);
     });
 }
 
 function logout() {
-  firebase.auth().signOut();
-  location.reload();
+  auth.signOut();
 }
