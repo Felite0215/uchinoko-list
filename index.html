@@ -1,58 +1,181 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>うちの子リスト</title>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-  <script src="firebase-config.js"></script>
-  <script src="auth.js" defer></script>
-  <script src="data.js" defer></script>
-  <style>
-    body { background: #16082f; color: white; font-family: sans-serif; margin:0; padding:1em; }
-    h1 { text-align:center; }
-    .hidden { display:none; }
-    .card { background:#2a1a40; margin:8px; padding:10px; border-radius:8px; display:inline-block; vertical-align:top; min-width:200px; }
-    summary { cursor:pointer; font-weight:bold; font-size:1.1em; }
-    input, textarea, button { display:block; width:100%; margin:6px 0; padding:8px; border-radius:5px; border:none; }
-    .card-container { white-space: nowrap; overflow-x:auto; padding:10px; }
-    a.link { color:#87ceeb; text-decoration:underline; }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>うちの子リスト</title>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<script src="firebase-config.js"></script>
+<script src="auth.js" defer></script>
+<script src="data.js" defer></script>
+
+<style>
+  body {
+    background-color: #16082f;
+    color: white;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0; padding: 1em;
+  }
+  h1 {
+    text-align: center;
+  }
+  #loginArea, #mainContent {
+    max-width: 1000px;
+    margin: auto;
+  }
+  input, textarea, select, button {
+    display: block;
+    width: 100%;
+    margin: 0.3em 0 1em 0;
+    padding: 0.5em;
+    border-radius: 5px;
+    border: none;
+    font-size: 1em;
+  }
+  button {
+    background-color: #3a2a63;
+    color: white;
+    cursor: pointer;
+  }
+  button:hover {
+    background-color: #5a48a1;
+  }
+  .hidden {
+    display: none;
+  }
+  details {
+    margin-bottom: 1em;
+    border: 1px solid #433271;
+    border-radius: 6px;
+    padding: 0.5em;
+  }
+  summary {
+    font-weight: bold;
+    font-size: 1.1em;
+    cursor: pointer;
+  }
+  .card-container {
+    white-space: nowrap;
+    overflow-x: auto;
+    padding: 10px 0;
+  }
+  .card {
+    display: inline-block;
+    background: #2a1a40;
+    border-radius: 8px;
+    margin: 0 10px 10px 0;
+    padding: 10px;
+    min-width: 200px;
+    vertical-align: top;
+    box-sizing: border-box;
+  }
+  .card img.thumb {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-bottom: 8px;
+  }
+  .char-header {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+  }
+  .char-header img.thumb {
+    margin-right: 10px;
+  }
+  .img-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .img-list img {
+    width: 96px;
+    height: 96px;
+    object-fit: cover;
+    border-radius: 6px;
+  }
+  label {
+    font-weight: bold;
+    margin-top: 0.5em;
+  }
+  .error {
+    color: #f88;
+  }
+  a {
+    color: #7cc0ff;
+    word-break: break-all;
+  }
+</style>
 </head>
 <body>
-  <h1>うちの子リスト</h1>
 
-  <div id="loginArea">
-    <input id="email" type="email" placeholder="メールアドレス" />
-    <input id="password" type="password" placeholder="パスワード" />
-    <button onclick="login()">ログイン</button>
-  </div>
+<h1>うちの子リスト</h1>
 
-  <div id="mainContent" class="hidden">
-    <button onclick="logout()">ログアウト</button>
-    <div id="formArea">
-      <input id="worldInput" placeholder="世界観名" />
-      <input id="nameInput" placeholder="キャラクター名" />
-      <input id="ageInput" placeholder="年齢" />
-      <select id="genderInput">
-        <option>男性</option><option>女性</option><option>無性</option><option>両性</option>
+<div id="loginArea">
+  <input id="email" type="email" placeholder="メールアドレス" />
+  <input id="password" type="password" placeholder="パスワード" />
+  <button id="loginBtn">ログイン</button>
+  <p id="loginError" class="error"></p>
+</div>
+
+<div id="mainContent" class="hidden">
+  <button id="logoutBtn">ログアウト</button>
+
+  <section id="addWorldSection">
+    <h2>世界観追加</h2>
+    <input id="worldNameInput" placeholder="世界観名" />
+    <button id="addWorldBtn">世界観を追加</button>
+  </section>
+
+  <section id="filterSection" style="margin-top:1em;">
+    <input id="searchInput" placeholder="検索: 名前、タグ、URL、備考" />
+    <select id="sortSelect" title="並び替え">
+      <option value="createdAt">作成日時順</option>
+      <option value="updatedAt">更新日時順</option>
+      <option value="name">名前順</option>
+    </select>
+  </section>
+
+  <section id="worldList">
+    <!-- 世界観・キャラクターリストがここに表示される -->
+  </section>
+
+  <section id="addCharSection" class="hidden" style="margin-top:2em;">
+    <h2>キャラクター追加・編集</h2>
+    <input type="hidden" id="editingCharId" />
+    <label>世界観名（必須）<input id="charWorldInput" placeholder="世界観名" /></label>
+    <label>キャラクター名（必須）<input id="charNameInput" placeholder="キャラクター名" /></label>
+    <label>年齢<input id="charAgeInput" placeholder="年齢" /></label>
+    <label>性別
+      <select id="charGenderInput">
+        <option value="">選択してください</option>
+        <option value="男性">男性</option>
+        <option value="女性">女性</option>
+        <option value="無性">無性</option>
+        <option value="両性">両性</option>
       </select>
-      <input id="heightInput" placeholder="身長" />
-      <input id="weightInput" placeholder="体重" />
-      <input id="tagsInput" placeholder="タグ（スペース区切り）" />
-      <input id="urlInput" placeholder="URLリンク（SNSなど）" />
-      <textarea id="notesInput" placeholder="備考"></textarea>
-      <button onclick="addCharacter()">キャラを追加</button>
-      <select id="sortSelect" onchange="loadCharacters()">
-        <option value="created">登録順（新しい順）</option>
-        <option value="updated">更新順（新しい順）</option>
-        <option value="name">名前順</option>
-      </select>
-    </div>
-    <input id="searchInput" placeholder="検索（名前・タグなど）" oninput="filterCharacters()" />
-    <div id="charList" class="card-container"></div>
-  </div>
+    </label>
+    <label>身長<input id="charHeightInput" placeholder="身長" /></label>
+    <label>体重<input id="charWeightInput" placeholder="体重" /></label>
+    <label>タグ（#タグ形式、スペース区切り）<input id="charTagsInput" placeholder="#タグ #タグ2" /></label>
+    <label>備考<textarea id="charNotesInput" rows="3" placeholder="備考"></textarea></label>
+    <label>URL（リンクで表示されます）<input id="charUrlInput" type="url" placeholder="https://example.com" /></label>
+    <label>顔画像（サムネイル・複数可）<input id="charThumbInput" type="file" accept="image/*" multiple /></label>
+    <label>立ち絵画像（複数可）<input id="charFullbodyInput" type="file" accept="image/*" multiple /></label>
+    <button id="saveCharBtn">保存</button>
+    <button id="cancelEditBtn">キャンセル</button>
+    <p id="charFormError" class="error"></p>
+  </section>
+</div>
+
+<script>
+// --- 定数・設定 ---
+const OWNER_UID = "XlWqWCKnchXAbY73Lc3jrtEVlVk2"; // あなたのUIDをここに
+
+</script>
 </body>
 </html>
