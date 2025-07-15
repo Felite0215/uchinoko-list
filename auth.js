@@ -5,17 +5,15 @@ const auth = firebase.auth();
 
 auth.onAuthStateChanged((user) => {
   if (user) {
-    // 自分がログインしている場合
     isOwner = (user.uid === "XlWqWCKnchXAbY73Lc3jrtEVlVk2");
     document.getElementById("mainContent").classList.remove("hidden");
     document.getElementById("loginArea").classList.add("hidden");
     loadCharacters();
   } else {
-    // 未ログインでも閲覧だけ許可
     isOwner = false;
     document.getElementById("mainContent").classList.remove("hidden");
     document.getElementById("loginArea").classList.add("hidden");
-    loadCharacters(); // 表示だけ行う
+    loadCharacters();
   }
 });
 
@@ -29,5 +27,9 @@ function login() {
 }
 
 function logout() {
-  auth.signOut();
+  auth.signOut().then(() => {
+    // ログアウト後ログイン画面に戻す
+    document.getElementById("mainContent").classList.add("hidden");
+    document.getElementById("loginArea").classList.remove("hidden");
+  });
 }
