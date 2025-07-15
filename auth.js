@@ -6,7 +6,6 @@ auth.onAuthStateChanged(user => {
   const loginArea = document.getElementById("loginArea");
   const formArea  = document.getElementById("formArea");
   const mainArea  = document.getElementById("mainContent");
-
   if (user) {
     isOwner = (user.uid === "XlWqWCKnchXAbY73Lc3jrtEVlVk2");
     loginArea.classList.add("hidden");
