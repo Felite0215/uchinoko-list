@@ -1,222 +1,142 @@
-const UID = "XlWqWCKnchXAbY73Lc3jrtEVlVk2";
-let allCharacters = {};
-let currentUserId = null;
+const db = firebase.firestore();
+const charList = document.getElementById("charList");
 
-// ファイルをBase64に変換するヘルパー関数
-function fileToBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = e => reject(e);
-    reader.readAsDataURL(file);
-  });
-}
+function addCharacter() {
+  const name = document.getElementById("nameInput").value;
+  const age = document.getElementById("ageInput").value;
+  const gender = document.getElementById("genderInput").value;
+  const height = document.getElementById("heightInput").value;
+  const weight = document.getElementById("weightInput").value;
+  const notes = document.getElementById("notesInput").value;
+  const created = new Date();
+  const updated = new Date();
 
-// ファイルリストをBase64の配列に変換
-async function convertFilesToBase64(fileList) {
-  const arr = [];
-  for (const file of fileList) {
-    const base64 = await fileToBase64(file);
-    arr.push(base64);
-  }
-  return arr;
-}
+  firebase.auth().onAuthStateChanged((user) => {
+    if (!user || user.uid !== "XlWqWCKnchXAbY73Lc3jrtEVlVk2") {
+      alert("保存できません（権限なし）");
+      return;
+    }
 
-async function addCharacter() {
-  const world = document.getElementById("worldInput").value.trim();
-  const name = document.getElementById("nameInput").value.trim();
-  const age = document.getElementById("ageInput").value.trim();
-  const gender = document.getElementById("genderInput").value.trim();
-  const height = document.getElementById("heightInput").value.trim();
-  const weight = document.getElementById("weightInput").value.trim();
-  const tags = document.getElementById("tagsInput").value.trim().split(/\s+/).filter(t => t);
-  const notes = document.getElementById("notesInput").value.trim();
-
-  if (!world || !name) {
-    alert("世界観名とキャラクター名は必須です");
-    return;
-  }
-
-  const thumbFiles = document.getElementById("thumbInput").files;
-  const fullbodyFiles = document.getElementById("fullbodyInput").files;
-
-  const addButton = document.querySelector("#formArea button");
-  addButton.disabled = true;
-
-  try {
-    const thumbBase64 = await convertFilesToBase64(thumbFiles);
-    const fullbodyBase64 = await convertFilesToBase64(fullbodyFiles);
-
-    const newChar = {
-      uid: currentUserId,
-      world,
+    db.collection("characters").add({
       name,
       age,
       gender,
       height,
       weight,
-      tags,
       notes,
-      thumbs: thumbBase64,
-      fullbodies: fullbodyBase64,
-      created: Date.now(),
-      updated: Date.now()
-    };
+      created,
+      updated,
+    }).then(() => {
+      clearForm();
+      loadCharacters();
+    }).catch((error) => {
+      alert("キャラの保存に失敗しました: " + error.message);
+    });
+  });
+}
 
-    await db.collection("characters").add(newChar);
+function loadCharacters() {
+  db.collection("characters").orderBy("created", "desc").get().then((querySnapshot) => {
+    charList.innerHTML = "";
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      const id = doc.id;
+      const div = document.createElement("div");
+      div.className = "card";
 
-    // 入力欄クリア
-    document.querySelectorAll("#formArea input, #formArea textarea").forEach(el => el.value = "");
-    document.getElementById("thumbInput").value = "";
-    document.getElementById("fullbodyInput").value = "";
+      const details = document.createElement("details");
+      const summary = document.createElement("summary");
+      summary.textContent = data.name;
+      details.appendChild(summary);
 
-    loadCharacters();
+      const content = document.createElement("div");
+      content.innerHTML = `
+        <p>年齢: ${data.age}</p>
+        <p>性別: ${data.gender}</p>
+        <p>身長: ${data.height}</p>
+        <p>体重: ${data.weight}</p>
+        <p>備考: ${data.notes}</p>
+        <p style="font-size: 0.8em; color: #ccc;">登録日: ${formatDate(data.created)} / 更新日: ${formatDate(data.updated)}</p>
+      `;
 
-  } catch (e) {
-    alert("キャラの保存に失敗しました: " + e.message);
-  } finally {
-    addButton.disabled = false;
+      firebase.auth().onAuthStateChanged((user) => {
+        if (user && user.uid === "XlWqWCKnchXAbY73Lc3jrtEVlVk2") {
+          const editBtn = document.createElement("button");
+          editBtn.textContent = "編集";
+          editBtn.onclick = () => editCharacter(id, data);
+          const deleteBtn = document.createElement("button");
+          deleteBtn.textContent = "削除";
+          deleteBtn.onclick = () => deleteCharacter(id);
+          content.appendChild(editBtn);
+          content.appendChild(deleteBtn);
+        }
+      });
+
+      details.appendChild(content);
+      div.appendChild(details);
+      charList.appendChild(div);
+    });
+  });
+}
+
+function editCharacter(id, data) {
+  document.getElementById("nameInput").value = data.name;
+  document.getElementById("ageInput").value = data.age;
+  document.getElementById("genderInput").value = data.gender;
+  document.getElementById("heightInput").value = data.height;
+  document.getElementById("weightInput").value = data.weight;
+  document.getElementById("notesInput").value = data.notes;
+
+  const form = document.getElementById("formArea");
+  const updateBtn = document.createElement("button");
+  updateBtn.textContent = "更新";
+  updateBtn.onclick = () => {
+    const updated = new Date();
+    db.collection("characters").doc(id).update({
+      name: document.getElementById("nameInput").value,
+      age: document.getElementById("ageInput").value,
+      gender: document.getElementById("genderInput").value,
+      height: document.getElementById("heightInput").value,
+      weight: document.getElementById("weightInput").value,
+      notes: document.getElementById("notesInput").value,
+      updated
+    }).then(() => {
+      loadCharacters();
+      clearForm();
+      updateBtn.remove();
+    });
+  };
+  form.appendChild(updateBtn);
+}
+
+function deleteCharacter(id) {
+  if (confirm("このキャラクターを削除しますか？")) {
+    db.collection("characters").doc(id).delete().then(() => {
+      loadCharacters();
+    });
   }
 }
 
-async function loadCharacters() {
-  const sortKey = document.getElementById("sortSelect").value;
-  let query = db.collection("characters");
-
-  // Firestoreでの並び替え対応（created・updated・name）
-  if (sortKey === "created") query = query.orderBy("created", "asc");
-  else if (sortKey === "updated") query = query.orderBy("updated", "asc");
-  else if (sortKey === "name") query = query.orderBy("name", "asc");
-
-  const snap = await query.get();
-
-  allCharacters = {};
-  snap.forEach(doc => {
-    const data = doc.data();
-    const world = data.world || "未分類";
-    if (!allCharacters[world]) allCharacters[world] = [];
-    allCharacters[world].push({ id: doc.id, ...data });
-  });
-
-  renderCharacters();
+function clearForm() {
+  document.getElementById("nameInput").value = "";
+  document.getElementById("ageInput").value = "";
+  document.getElementById("genderInput").value = "";
+  document.getElementById("heightInput").value = "";
+  document.getElementById("weightInput").value = "";
+  document.getElementById("notesInput").value = "";
 }
 
-function renderCharacters() {
-  const container = document.getElementById("charList");
-  container.innerHTML = "";
-
-  Object.keys(allCharacters).sort().forEach(world => {
-    const details = document.createElement("details");
-    details.innerHTML = `<summary>${world}（${allCharacters[world].length}人）</summary>`;
-    details.open = false;
-
-    const cardBox = document.createElement("div");
-    cardBox.className = "card-container";
-
-    allCharacters[world].forEach(char => {
-      const card = document.createElement("div");
-      card.className = "card";
-
-      // Base64画像のうち、最初の画像を表示。なければ空欄。
-      const thumbSrc = (char.thumbs && char.thumbs.length > 0) ? char.thumbs[0] : "";
-
-      card.innerHTML = `
-        <img src="${thumbSrc}" alt="${char.name}" />
-        <strong>${char.name}</strong><br>
-        年齢: ${char.age || "-"}<br>
-        性別: ${char.gender || "-"}<br>
-        身長: ${char.height || "-"} / 体重: ${char.weight || "-"}<br>
-        ${char.tags?.map(t => `<span class="tag">${t}</span>`).join(" ") || ""}
-        <br>
-        <small>${char.notes || ""}</small><br>
-        ${char.uid === currentUserId ? `
-          <button onclick="editCharacter('${char.id}')">編集</button>
-          <button onclick="deleteCharacter('${char.id}')">削除</button>` : ""}
-      `;
-
-      cardBox.appendChild(card);
-    });
-
-    details.appendChild(cardBox);
-    container.appendChild(details);
-  });
+function formatDate(timestamp) {
+  if (!timestamp) return "";
+  const date = timestamp.toDate ? timestamp.toDate() : timestamp;
+  return date.toLocaleDateString() + " " + date.toLocaleTimeString();
 }
 
 function filterCharacters() {
   const keyword = document.getElementById("searchInput").value.toLowerCase();
-  const filtered = {};
-
-  Object.keys(allCharacters).forEach(world => {
-    const matches = allCharacters[world].filter(c =>
-      c.name.toLowerCase().includes(keyword) ||
-      (c.tags && c.tags.some(tag => tag.toLowerCase().includes(keyword)))
-    );
-    if (matches.length) filtered[world] = matches;
-  });
-
-  const container = document.getElementById("charList");
-  container.innerHTML = "";
-
-  Object.keys(filtered).sort().forEach(world => {
-    const details = document.createElement("details");
-    details.innerHTML = `<summary>${world}（${filtered[world].length}人）</summary>`;
-    details.open = true;
-
-    const cardBox = document.createElement("div");
-    cardBox.className = "card-container";
-
-    filtered[world].forEach(char => {
-      const card = document.createElement("div");
-      card.className = "card";
-      const thumbSrc = (char.thumbs && char.thumbs.length > 0) ? char.thumbs[0] : "";
-      card.innerHTML = `
-        <img src="${thumbSrc}" alt="${char.name}" />
-        <strong>${char.name}</strong><br>
-        ${char.tags?.map(t => `<span class="tag">${t}</span>`).join(" ") || ""}
-      `;
-      cardBox.appendChild(card);
-    });
-
-    details.appendChild(cardBox);
-    container.appendChild(details);
+  const cards = document.querySelectorAll(".card");
+  cards.forEach(card => {
+    const text = card.textContent.toLowerCase();
+    card.style.display = text.includes(keyword) ? "inline-block" : "none";
   });
 }
-
-// 編集機能
-async function editCharacter(id) {
-  const doc = await db.collection("characters").doc(id).get();
-  const char = doc.data();
-  if (char.uid !== currentUserId) return alert("編集できません");
-
-  document.getElementById("worldInput").value = char.world;
-  document.getElementById("nameInput").value = char.name;
-  document.getElementById("ageInput").value = char.age || "";
-  document.getElementById("genderInput").value = char.gender || "";
-  document.getElementById("heightInput").value = char.height || "";
-  document.getElementById("weightInput").value = char.weight || "";
-  document.getElementById("tagsInput").value = (char.tags || []).join(" ");
-  document.getElementById("notesInput").value = char.notes || "";
-
-  // Base64画像は編集画面に戻すのが難しいため一旦クリアにします
-  document.getElementById("thumbInput").value = "";
-  document.getElementById("fullbodyInput").value = "";
-
-  // 元のデータは削除して、新規登録で更新にする簡易方式
-  await db.collection("characters").doc(id).delete();
-
-  loadCharacters();
-}
-
-// 削除機能
-async function deleteCharacter(id) {
-  if (confirm("このキャラを削除しますか？")) {
-    await db.collection("characters").doc(id).delete();
-    loadCharacters();
-  }
-}
-
-// 認証状態でUID取得
-firebase.auth().onAuthStateChanged(user => {
-  currentUserId = user?.uid || null;
-  if(currentUserId) loadCharacters();
-});
